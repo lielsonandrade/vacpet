@@ -1,0 +1,32 @@
+{
+  "name": "vacpet",
+  "version": "1.0.0",
+  "description": "> Carteirinha de vacinação de animais de estimação registrada na blockchain Ethereum (Sepolia Testnet).",
+  "main": "index.js",
+  "scripts": {
+    "test": "npx hardhat test",
+    "test:coverage": "npx hardhat coverage",
+    "test:gas": "cross-env REPORT_GAS=true npx hardhat test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
+    "@nomicfoundation/hardhat-ethers": "^3.0.0",
+    "@nomicfoundation/hardhat-network-helpers": "^1.0.0",
+    "@typechain/hardhat": "^9.1.0",
+    "@typechain/ethers-v6": "^0.5.1",
+    "chai": "^4.3.7",
+    "dotenv": "^17.4.2",
+    "hardhat": "^2.22.17",
+    "hardhat-gas-reporter": "^1.0.8",
+    "solidity-coverage": "^0.8.1",
+    "typechain": "^8.3.1",
+    "cross-env": "^7.0.3"
+  },
+  "dependencies": {
+    "ethers": "^6.7.0"
+  }
+}
