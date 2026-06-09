@@ -217,7 +217,7 @@ vacpet/
 
 ## 🤖 Ferramentas de IA utilizadas
 - Claude (Anthropic) — apoio no desenvolvimento do contrato Solidity,
-  frontend, testes e estrutura do projeto.
+  frontend e estrutura do projeto.
 
 ---
 
