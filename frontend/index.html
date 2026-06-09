@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Pet Vaccination Card</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,600;0,900;1,300&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --surface2: #1c2330;
+      --border: #2a3441;
+      --green: #3fb950;
+      --green-dim: #1a3a22;
+      --amber: #d29922;
+      --text: #e6edf3;
+      --muted: #7d8590;
+      --accent: #58a6ff;
+      --paw: #f0883e;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      background: rgba(13,17,23,0.85);
+      backdrop-filter: blur(12px);
+      z-index: 100;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-family: 'Fraunces', serif;
+      font-size: 1.25rem;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+    }
+
+    .logo span { color: var(--paw); }
+
+    #btn-connect {
+      background: var(--green-dim);
+      color: var(--green);
+      border: 1px solid var(--green);
+      padding: 0.45rem 1.1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    #btn-connect:hover { background: var(--green); color: #000; }
+    #btn-connect.connected { background: var(--green-dim); color: var(--green); cursor: default; }
+
+    #wallet-info {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 0.15rem;
+      text-align: right;
+    }
+
+    /* ── Layout ── */
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem;
+    }
+
+    .hero {
+      text-align: center;
+      padding: 3rem 0 2.5rem;
+    }
+
+    .hero h1 {
+      font-family: 'Fraunces', serif;
+      font-size: clamp(2.2rem, 5vw, 3.5rem);
+      font-weight: 900;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+    }
+
+    .hero h1 em {
+      font-style: italic;
+      color: var(--paw);
+    }
+
+    .hero p {
+      color: var(--muted);
+      margin-top: 0.8rem;
+      font-size: 1rem;
+      max-width: 480px;
+      margin-inline: auto;
+    }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex;
+      gap: 0.25rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 2rem;
+    }
+
+    .tab-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      padding: 0.7rem 1.2rem;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 500;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: all 0.2s;
+    }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active { color: var(--paw); border-bottom-color: var(--paw); }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── Cards / Forms ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin-bottom: 1.2rem;
+    }
+
+    .card h3 {
+      font-family: 'Fraunces', serif;
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .form-group.full { grid-column: 1 / -1; }
+
+    label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    input, select {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      padding: 0.55rem 0.8rem;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input:focus, select:focus { border-color: var(--accent); }
+
+    select option { background: var(--surface); }
+
+    .btn-primary {
+      background: var(--paw);
+      color: #000;
+      border: none;
+      padding: 0.65rem 1.5rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 700;
+      font-size: 0.9rem;
+      margin-top: 1rem;
+      transition: opacity 0.2s, transform 0.1s;
+      width: 100%;
+    }
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    .btn-secondary {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 0.55rem 1.2rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 600;
+      font-size: 0.9rem;
+      transition: border-color 0.2s;
+    }
+    .btn-secondary:hover { border-color: var(--accent); }
+
+    /* ── Alert / Status ── */
+    .alert {
+      padding: 0.8rem 1rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      margin-bottom: 1rem;
+      display: none;
+    }
+    .alert.info  { background: #0c2d5e; border: 1px solid var(--accent); color: #a5c8ff; display: block; }
+    .alert.success { background: var(--green-dim); border: 1px solid var(--green); color: #7ee787; display: block; }
+    .alert.error { background: #3b1111; border: 1px solid #f85149; color: #ffa198; display: block; }
+
+    /* ── Animal card ── */
+    .animal-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.2rem 1.5rem;
+      margin-bottom: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .animal-info { flex: 1; }
+    .animal-name {
+      font-family: 'Fraunces', serif;
+      font-size: 1.2rem;
+      font-weight: 700;
+    }
+    .animal-meta {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 0.2rem;
+    }
+
+    .badge {
+      background: var(--green-dim);
+      color: var(--green);
+      border: 1px solid var(--green);
+      border-radius: 20px;
+      padding: 0.2rem 0.6rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .badge.amber {
+      background: #2d2000;
+      color: var(--amber);
+      border-color: var(--amber);
+    }
+
+    /* ── Vaccine timeline ── */
+    .timeline { margin-top: 1rem; }
+
+    .timeline-item {
+      display: flex;
+      gap: 1rem;
+      padding: 0.8rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .timeline-item:last-child { border-bottom: none; }
+
+    .timeline-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--green);
+      margin-top: 0.35rem;
+      flex-shrink: 0;
+    }
+
+    .vac-name {
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .vac-meta {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 0.15rem;
+      line-height: 1.6;
+    }
+
+    /* ── Sepolia badge ── */
+    .network-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: #1c1640;
+      border: 1px solid #4a3f8a;
+      color: #b4a0ff;
+      border-radius: 20px;
+      padding: 0.3rem 0.75rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-top: 0.8rem;
+    }
+
+    .dot-live {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    .loading { opacity: 0.5; pointer-events: none; }
+
+    .search-row {
+      display: flex;
+      gap: 0.6rem;
+      margin-bottom: 1.2rem;
+    }
+    .search-row input { flex: 1; }
+
+    @media (max-width: 600px) {
+      .form-grid { grid-template-columns: 1fr; }
+      .animal-card { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🐾 <span>Pet</span>Vaccination<span>Card</span></div>
+  <div>
+    <button id="btn-connect" onclick="conectarCarteira()">Conectar MetaMask</button>
+    <div id="wallet-info"></div>
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="hero">
+    <h1>Carteirinha de Vacinas<br/><em>na Blockchain</em></h1>
+    <p>Registros imutáveis, verificáveis publicamente, para sempre.</p>
+    <div class="network-badge">
+      <span class="dot-live"></span> Sepolia Testnet
+    </div>
+  </div>
+
+  <div id="alerta-global"></div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="mudarTab('cadastrar')">🐶 Cadastrar Animal</button>
+    <button class="tab-btn" onclick="mudarTab('vacinar')">💉 Registrar Vacina</button>
+    <button class="tab-btn" onclick="mudarTab('consultar')">🔍 Consultar</button>
+    <button class="tab-btn" onclick="mudarTab('meus')">📋 Meus Animais</button>
+  </div>
+
+  <!-- Tab: Cadastrar -->
+  <div id="tab-cadastrar" class="tab-panel active">
+    <div class="card">
+      <h3>🐾 Cadastrar novo animal</h3>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Nome do animal</label>
+          <input id="c-nome" type="text" placeholder="Ex: Thor"/>
+        </div>
+        <div class="form-group">
+          <label>Espécie</label>
+          <select id="c-especie">
+            <option>Cão</option>
+            <option>Gato</option>
+            <option>Coelho</option>
+            <option>Outro</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Raça</label>
+          <input id="c-raca" type="text" placeholder="Ex: Labrador"/>
+        </div>
+        <div class="form-group">
+          <label>Cor / pelagem</label>
+          <input id="c-cor" type="text" placeholder="Ex: Caramelo"/>
+        </div>
+        <div class="form-group">
+          <label>Data de nascimento</label>
+          <input id="c-datanascimento" type="date"/>
+        </div>
+      </div>
+      <button class="btn-primary" id="btn-cadastrar" onclick="cadastrarAnimal()">
+        Registrar na Blockchain
+      </button>
+      <div id="resultado-cadastro" class="alert" style="margin-top:1rem;"></div>
+    </div>
+  </div>
+
+  <!-- Tab: Vacinar -->
+  <div id="tab-vacinar" class="tab-panel">
+    <div class="card">
+      <h3>💉 Registrar vacina</h3>
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>ID do animal</label>
+          <input id="v-animalid" type="number" placeholder="Ex: 1"/>
+        </div>
+        <div class="form-group">
+          <label>Nome da vacina</label>
+          <select id="v-nome">
+            <option>V10</option>
+            <option>V8</option>
+            <option>Antirrábica</option>
+            <option>Gripe</option>
+            <option>Giardia</option>
+            <option>Leishmaniose</option>
+            <option>Outra</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Número do lote</label>
+          <input id="v-lote" type="text" placeholder="Ex: LOT2024-001"/>
+        </div>
+        <div class="form-group">
+          <label>Data de aplicação</label>
+          <input id="v-data" type="date"/>
+        </div>
+        <div class="form-group">
+          <label>Próxima dose (opcional)</label>
+          <input id="v-proxima" type="date"/>
+        </div>
+        <div class="form-group">
+          <label>Veterinário</label>
+          <input id="v-vet" type="text" placeholder="Dr(a). Nome CRMV-XX 00000"/>
+        </div>
+        <div class="form-group">
+          <label>Clínica / Hospital</label>
+          <input id="v-clinica" type="text" placeholder="Clínica Pet Saúde"/>
+        </div>
+      </div>
+      <button class="btn-primary" onclick="registrarVacina()">Registrar na Blockchain</button>
+      <div id="resultado-vacina" class="alert" style="margin-top:1rem;"></div>
+    </div>
+  </div>
+
+  <!-- Tab: Consultar -->
+  <div id="tab-consultar" class="tab-panel">
+    <div class="card">
+      <h3>🔍 Consulta pública por ID</h3>
+      <p style="font-size:0.85rem;color:var(--muted);margin-bottom:1rem;">
+        Qualquer pessoa pode verificar o histórico de vacinas — sem precisar de carteira.
+      </p>
+      <div class="search-row">
+        <input id="q-id" type="number" placeholder="ID do animal (ex: 1)"/>
+        <button class="btn-secondary" onclick="consultarAnimal()">Buscar</button>
+      </div>
+      <div id="resultado-consulta"></div>
+    </div>
+  </div>
+
+  <!-- Tab: Meus animais -->
+  <div id="tab-meus" class="tab-panel">
+    <div id="lista-meus">
+      <p style="color:var(--muted);font-size:0.9rem;">Conecte a carteira para ver seus animais.</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/**
+ * Pet Vaccination Card — Frontend
+ *
+ * Responsabilidades deste script:
+ *  1. Conectar a carteira MetaMask do usuário via Ethers.js
+ *  2. Enviar transações ao contrato (cadastrar animal, registrar vacina)
+ *  3. Ler dados do contrato sem precisar de carteira (consulta pública)
+ *  4. Exibir feedback visual em tempo real para o usuário
+ *
+ * Dependência externa: Ethers.js v6 (carregado via CDN no <head>)
+ */
+
+// ─── CONFIGURAÇÃO ─────────────────────────────────────────────────────────────
+
+/**
+ * Endereço do contrato PetVaccinationCard deployado na Sepolia Testnet.
+ * Substitua pelo endereço gerado após o deploy caso precise redeployar.
+ */
+
+const CONTRACT_ADDRESS = "0x87674376e5eE07ECe76D697446Fa25617214E9F4";
+
+/**
+ * ABI (Application Binary Interface) do contrato.
+ * Define as assinaturas das funções e eventos que o frontend pode chamar.
+ * Apenas as funções utilizadas pelo frontend estão listadas aqui (ABI mínima).
+ */
+const ABI = [
+  // Funções de escrita (requerem carteira conectada e gas)
+  "function cadastrarAnimal(string nome, string especie, string raca, uint256 dataNascimento, string cor) returns (uint256)",
+  "function registrarVacina(uint256 animalId, string nomeVacina, string lote, uint256 dataAplicacao, uint256 proximaDose, string veterinario, string clinica)",
+
+  // Funções de leitura (gratuitas, não requerem carteira)
+  "function consultarAnimal(uint256 animalId) view returns (tuple(uint256 id, string nome, string especie, string raca, uint256 dataNascimento, string cor, address tutor, bool ativo, uint256 criadoEm))",
+  "function consultarVacinas(uint256 animalId) view returns (tuple(string nome, string lote, uint256 dataAplicacao, uint256 proximaDose, string veterinario, string clinica)[])",
+  "function animaisDoTutor(address tutor) view returns (uint256[])",
+  "function totalAnimais() view returns (uint256)",
+
+  // Eventos emitidos pelo contrato (usados para capturar o ID gerado)
+  "event AnimalCadastrado(uint256 indexed id, string nome, address indexed tutor)",
+  "event VacinaRegistrada(uint256 indexed animalId, string vacina, uint256 data)"
+];
+
+/**
+ * Chain ID da rede Sepolia Testnet.
+ * Usado para validar que o usuário está na rede correta antes de interagir.
+ * Valor: 11155111 (em BigInt, pois Ethers.js v6 retorna BigInt para chainId)
+ */
+const SEPOLIA_CHAIN_ID = 11155111n;
+
+// ─── ESTADO GLOBAL ────────────────────────────────────────────────────────────
+
+/**
+ * Variáveis de estado da sessão do usuário.
+ * São inicializadas como undefined e preenchidas após conectar a carteira.
+ *
+ * @type {ethers.BrowserProvider}  provider   - Provedor conectado ao MetaMask
+ * @type {ethers.Signer}           signer     - Assinador para enviar transações
+ * @type {ethers.Contract}         contract   - Instância do contrato com signer
+ * @type {string}                  walletAddress - Endereço da carteira conectada
+ */
+let provider, signer, contract, walletAddress;
+
+// ─── CONEXÃO COM CARTEIRA ─────────────────────────────────────────────────────
+
+/**
+ * Solicita ao MetaMask permissão para acessar a carteira do usuário.
+ * Valida se o usuário está na rede Sepolia antes de prosseguir.
+ * Inicializa as variáveis globais provider, signer, contract e walletAddress.
+ */
+async function conectarCarteira() {
+  // Verifica se o MetaMask (ou outra carteira Web3) está instalado no navegador
+  if (!window.ethereum) {
+    mostrarAlerta('alerta-global', 'MetaMask não encontrada! Instale em metamask.io', 'error');
+    return;
+  }
+
+  try {
+    // Cria o provider usando a injeção do MetaMask no navegador
+    provider = new ethers.BrowserProvider(window.ethereum);
+
+    // Solicita ao usuário permissão para acessar os endereços da carteira
+    await provider.send("eth_requestAccounts", []);
+
+    // Verifica se o usuário está conectado à rede correta (Sepolia)
+    const network = await provider.getNetwork();
+    if (network.chainId !== SEPOLIA_CHAIN_ID) {
+      mostrarAlerta('alerta-global', '⚠️ Troque para a rede Sepolia no MetaMask!', 'error');
+      return;
+    }
+
+    // Obtém o signer (conta que vai assinar as transações)
+    signer = await provider.getSigner();
+    walletAddress = await signer.getAddress();
+
+    // Inicializa a instância do contrato com o signer para permitir transações
+    contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+
+    // Atualiza a UI para refletir o estado conectado
+    document.getElementById('btn-connect').textContent = '✓ Conectado';
+    document.getElementById('btn-connect').classList.add('connected');
+    document.getElementById('wallet-info').textContent =
+      // Exibe endereço abreviado: "0x1234...abcd • Sepolia"
+      walletAddress.slice(0, 6) + '...' + walletAddress.slice(-4) + ' • Sepolia';
+
+    mostrarAlerta('alerta-global', '✓ Carteira conectada com sucesso!', 'success');
+
+    // Remove o alerta de sucesso após 3 segundos para não poluir a tela
+    setTimeout(() => { document.getElementById('alerta-global').innerHTML = ''; }, 3000);
+
+    // Carrega imediatamente os animais do tutor conectado
+    carregarMeusAnimais();
+
+  } catch (e) {
+    // Usuário rejeitou a conexão ou ocorreu erro inesperado
+    mostrarAlerta('alerta-global', 'Erro ao conectar: ' + e.message, 'error');
+  }
+}
+
+// ─── CADASTRAR ANIMAL ─────────────────────────────────────────────────────────
+
+/**
+ * Lê os campos do formulário de cadastro, converte a data para timestamp Unix
+ * e envia a transação ao contrato. Aguarda a confirmação on-chain e exibe
+ * o ID gerado e o link da transação na Etherscan.
+ */
+async function cadastrarAnimal() {
+  // Garante que a carteira está conectada antes de tentar enviar transação
+  if (!signer) {
+    mostrarAlerta('resultado-cadastro', 'Conecte a carteira primeiro.', 'error');
+    return;
+  }
+
+  // Lê e sanitiza os campos do formulário (trim remove espaços extras)
+  const nome    = document.getElementById('c-nome').value.trim();
+  const especie = document.getElementById('c-especie').value;
+  const raca    = document.getElementById('c-raca').value.trim();
+  const cor     = document.getElementById('c-cor').value.trim();
+  const dataNasc = document.getElementById('c-datanascimento').value;
+
+  // Validação básica dos campos obrigatórios
+  if (!nome || !raca || !dataNasc) {
+    mostrarAlerta('resultado-cadastro', 'Preencha todos os campos obrigatórios.', 'error');
+    return;
+  }
+
+  // Converte a data do input (YYYY-MM-DD) para timestamp Unix em segundos
+  // O contrato armazena timestamps como uint256 (segundos desde 01/01/1970)
+  const timestamp = Math.floor(new Date(dataNasc).getTime() / 1000);
+
+  // Desabilita o botão durante o processamento para evitar duplo envio
+  const btn = document.getElementById('btn-cadastrar');
+  btn.disabled = true;
+  btn.textContent = 'Aguardando confirmação...';
+
+  try {
+    // Envia a transação ao contrato — abre o MetaMask para o usuário aprovar
+    const tx = await contract.cadastrarAnimal(nome, especie, raca, timestamp, cor);
+
+    mostrarAlerta('resultado-cadastro', '⏳ Transação enviada! Aguardando confirmação na blockchain...', 'info');
+
+    // Aguarda a confirmação do bloco (mineração da transação)
+    const receipt = await tx.wait();
+
+    // Extrai o ID do animal a partir do evento AnimalCadastrado emitido pelo contrato
+    // Mais confiável do que depender da ordem dos retornos da função
+    const evento = receipt.logs
+      .map(l => { try { return contract.interface.parseLog(l); } catch { return null; } })
+      .find(e => e?.name === 'AnimalCadastrado');
+
+    const animalId = evento ? evento.args[0].toString() : '?';
+
+    mostrarAlerta('resultado-cadastro',
+      `✅ Animal cadastrado com sucesso! ID: <strong>${animalId}</strong><br/>
+       🔗 <a href="https://sepolia.etherscan.io/tx/${tx.hash}" target="_blank" style="color:var(--accent)">Ver na Etherscan</a>`,
+      'success'
+    );
+
+    // Atualiza a aba "Meus Animais" para refletir o novo cadastro
+    carregarMeusAnimais();
+
+  } catch (e) {
+    // e.reason contém a mensagem de revert do contrato (ex: "apenas o tutor")
+    // e.message é o erro genérico do Ethers.js
+    mostrarAlerta('resultado-cadastro', 'Erro: ' + (e.reason || e.message), 'error');
+
+  } finally {
+    // Reabilita o botão independentemente de sucesso ou erro
+    btn.disabled = false;
+    btn.textContent = 'Registrar na Blockchain';
+  }
+}
+
+// ─── REGISTRAR VACINA ─────────────────────────────────────────────────────────
+
+/**
+ * Lê os campos do formulário de vacinação, converte as datas para timestamps
+ * e envia a transação ao contrato. Aguarda confirmação e exibe link na Etherscan.
+ */
+async function registrarVacina() {
+  // Garante que a carteira está conectada
+  if (!signer) {
+    mostrarAlerta('resultado-vacina', 'Conecte a carteira primeiro.', 'error');
+    return;
+  }
+
+  // Lê os campos do formulário
+  const animalId = document.getElementById('v-animalid').value;
+  const nome     = document.getElementById('v-nome').value;
+  const lote     = document.getElementById('v-lote').value.trim();
+  const data     = document.getElementById('v-data').value;
+  const proxima  = document.getElementById('v-proxima').value; // Campo opcional
+  const vet      = document.getElementById('v-vet').value.trim();
+  const clinica  = document.getElementById('v-clinica').value.trim();
+
+  // Validação dos campos obrigatórios
+  if (!animalId || !lote || !data || !vet) {
+    mostrarAlerta('resultado-vacina', 'Preencha ID do animal, lote, data e veterinário.', 'error');
+    return;
+  }
+
+  // Converte datas para timestamp Unix (segundos)
+  const tsData    = Math.floor(new Date(data).getTime() / 1000);
+  // Se próxima dose não foi informada, envia 0 (o contrato trata 0 como "sem data")
+  const tsProxima = proxima ? Math.floor(new Date(proxima).getTime() / 1000) : 0;
+
+  try {
+    // Envia a transação ao contrato
+    const tx = await contract.registrarVacina(
+      animalId, nome, lote, tsData, tsProxima, vet, clinica
+    );
+
+    mostrarAlerta('resultado-vacina', '⏳ Enviando transação...', 'info');
+
+    // Aguarda confirmação on-chain
+    await tx.wait();
+
+    mostrarAlerta('resultado-vacina',
+      `✅ Vacina <strong>${nome}</strong> registrada com sucesso!<br/>
+       🔗 <a href="https://sepolia.etherscan.io/tx/${tx.hash}" target="_blank" style="color:var(--accent)">Ver na Etherscan</a>`,
+      'success'
+    );
+
+  } catch (e) {
+    mostrarAlerta('resultado-vacina', 'Erro: ' + (e.reason || e.message), 'error');
+  }
+}
+
+// ─── CONSULTA PÚBLICA ─────────────────────────────────────────────────────────
+
+/**
+ * Consulta os dados de um animal pelo ID sem precisar de carteira conectada.
+ * Esta é a função central de verificação pública — qualquer pessoa pode usar.
+ *
+ * Usa um provider de leitura (JsonRpcProvider) quando o MetaMask não está
+ * conectado, permitindo consulta mesmo sem extensão instalada.
+ */
+async function consultarAnimal() {
+  const id = document.getElementById('q-id').value;
+
+  // Não faz nada se o campo estiver vazio
+  if (!id) return;
+
+  /**
+   * Para consultas públicas, usa o provider do MetaMask se disponível,
+   * ou cria um provider de leitura direto via RPC.
+   * Isso permite que a consulta funcione sem carteira conectada.
+   */
+  const prov = provider || new ethers.JsonRpcProvider(
+    'https://eth-sepolia.g.alchemy.com/v2/demo' // RPC público de leitura
+  );
+
+  // Instância do contrato somente leitura (sem signer)
+  const c = new ethers.Contract(CONTRACT_ADDRESS, ABI, prov);
+
+  // Feedback visual imediato enquanto aguarda a resposta da blockchain
+  document.getElementById('resultado-consulta').innerHTML =
+    '<p style="color:var(--muted);font-size:0.85rem;">Consultando blockchain...</p>';
+
+  try {
+    // Faz as duas chamadas em paralelo para melhor performance
+    const [animal, vacinas] = await Promise.all([
+      c.consultarAnimal(id),
+      c.consultarVacinas(id)
+    ]);
+
+    // Converte timestamps Unix (segundos) para datas legíveis em pt-BR
+    const nascimento = new Date(Number(animal.dataNascimento) * 1000).toLocaleDateString('pt-BR');
+    const criado     = new Date(Number(animal.criadoEm) * 1000).toLocaleDateString('pt-BR');
+
+    // Constrói o HTML do histórico de vacinas
+    let vacinasHtml = '';
+    if (vacinas.length === 0) {
+      vacinasHtml = '<p style="color:var(--muted);font-size:0.85rem;padding:0.8rem 0;">Nenhuma vacina registrada ainda.</p>';
+    } else {
+      vacinasHtml = vacinas.map(v => {
+        const dtApl  = new Date(Number(v.dataAplicacao) * 1000).toLocaleDateString('pt-BR');
+        // proximaDose == 0 significa "sem próxima dose" — exibe traço
+        const dtProx = Number(v.proximaDose) > 0
+          ? new Date(Number(v.proximaDose) * 1000).toLocaleDateString('pt-BR')
+          : '—';
+        return `
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div>
+              <div class="vac-name">${v.nome}</div>
+              <div class="vac-meta">
+                📅 Aplicada em: ${dtApl}<br/>
+                🔄 Próxima dose: ${dtProx}<br/>
+                👨‍⚕️ ${v.veterinario} • ${v.clinica}<br/>
+                🏷️ Lote: ${v.lote}
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    // Renderiza o card completo do animal com seu histórico de vacinas
+    document.getElementById('resultado-consulta').innerHTML = `
+      <div class="animal-card" style="align-items:flex-start;flex-direction:column;">
+        <div style="display:flex;justify-content:space-between;width:100%;align-items:center;">
+          <div>
+            <div class="animal-name">${animal.nome} <span style="font-size:0.8rem;color:var(--muted);font-family:'DM Sans'">ID #${animal.id}</span></div>
+            <div class="animal-meta">${animal.especie} • ${animal.raca} • ${animal.cor}</div>
+            <div class="animal-meta">🎂 Nascimento: ${nascimento} • 📝 Cadastrado: ${criado}</div>
+            <div class="animal-meta" style="word-break:break-all;">👤 Tutor: ${animal.tutor}</div>
+          </div>
+          <span class="badge">${vacinas.length} vacina${vacinas.length !== 1 ? 's' : ''}</span>
+        </div>
+        <div class="timeline" style="width:100%;">
+          <div style="font-size:0.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin:1rem 0 0.5rem;">Histórico de vacinação</div>
+          ${vacinasHtml}
+        </div>
+      </div>`;
+
+  } catch (e) {
+    // Animal não encontrado ou erro de conexão com o RPC
+    document.getElementById('resultado-consulta').innerHTML =
+      `<div class="alert error">Animal não encontrado ou erro na consulta: ${e.message}</div>`;
+  }
+}
+
+// ─── MEUS ANIMAIS ─────────────────────────────────────────────────────────────
+
+/**
+ * Carrega e exibe todos os animais cadastrados pelo tutor conectado.
+ * Chamada automaticamente após conectar a carteira e ao trocar para a aba.
+ * Faz uma chamada por animal para buscar dados completos e contagem de vacinas.
+ */
+async function carregarMeusAnimais() {
+  // Só executa se a carteira e o contrato estiverem inicializados
+  if (!walletAddress || !contract) return;
+
+  const div = document.getElementById('lista-meus');
+  div.innerHTML = '<p style="color:var(--muted);font-size:0.85rem;">Carregando...</p>';
+
+  try {
+    // Busca a lista de IDs dos animais do tutor conectado
+    const ids = await contract.animaisDoTutor(walletAddress);
+
+    if (ids.length === 0) {
+      div.innerHTML = '<div class="alert info">Você ainda não tem animais cadastrados.</div>';
+      return;
+    }
+
+    // Para cada ID, busca os dados do animal e a contagem de vacinas
+    let html = '';
+    for (const id of ids) {
+      const a       = await contract.consultarAnimal(id);
+      const vacinas = await contract.consultarVacinas(id);
+
+      // Badge amarelo se não tem vacinas, verde se tem
+      html += `
+        <div class="animal-card">
+          <div class="animal-info">
+            <div class="animal-name">${a.nome} <span style="font-size:0.8rem;color:var(--muted)">ID #${a.id}</span></div>
+            <div class="animal-meta">${a.especie} • ${a.raca}</div>
+          </div>
+          <span class="badge ${vacinas.length === 0 ? 'amber' : ''}">
+            ${vacinas.length} vacina${vacinas.length !== 1 ? 's' : ''}
+          </span>
+        </div>`;
+    }
+
+    div.innerHTML = html;
+
+  } catch (e) {
+    div.innerHTML = `<div class="alert error">Erro ao carregar: ${e.message}</div>`;
+  }
+}
+
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
+
+/**
+ * Troca a aba ativa na interface.
+ * Remove a classe 'active' de todos os painéis e botões,
+ * e aplica apenas na aba selecionada.
+ *
+ * @param {string} nome - Nome da aba a ser ativada ('cadastrar', 'vacinar', 'consultar', 'meus')
+ */
+function mudarTab(nome) {
+  // Remove estado ativo de todos os painéis e botões de aba
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+
+  // Ativa o painel e o botão correspondentes
+  document.getElementById('tab-' + nome).classList.add('active');
+  event.target.classList.add('active');
+
+  // Recarrega os animais ao entrar na aba "Meus Animais"
+  if (nome === 'meus') carregarMeusAnimais();
+}
+
+/**
+ * Exibe uma mensagem de alerta em um elemento da página.
+ * Suporta os tipos: 'info', 'success', 'error'.
+ *
+ * @param {string} id   - ID do elemento HTML onde o alerta será exibido
+ * @param {string} msg  - Mensagem a ser exibida (aceita HTML)
+ * @param {string} tipo - Tipo visual do alerta: 'info' | 'success' | 'error'
+ */
+function mostrarAlerta(id, msg, tipo) {
+  const el = document.getElementById(id);
+  if (!el) return; // Elemento não encontrado — não faz nada
+
+  // Aplica a classe CSS correspondente ao tipo de alerta
+  el.className = 'alert ' + tipo;
+  el.innerHTML = msg;
+}
+</script>
+</body>
+</html>
